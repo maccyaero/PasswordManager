@@ -1,7 +1,8 @@
 import tkinter
 import pandas as pd
 import random
-
+import json
+from tkinter import messagebox
 header_written = False
 website_name = " "
 email = " "
@@ -37,8 +38,7 @@ def password_generator():
 
     random.shuffle(password_list)
 
-    for char in password_list:
-        password += char
+    password = "".join(password_list)
 
     password_input.insert(0, password)
 
@@ -51,18 +51,69 @@ def save_password():
     global email
     global password
     global header_written
-
     website_name = website_input.get()
     email = email_input.get()
     password = password_input.get()
-    d = {'Website': [website_name], 'Username': [email], 'Password': [password]}
-    df = pd.DataFrame(data=d)
-    print(df)
-    df.to_csv('out.csv', index=False, mode='a', header=False)
+    # Write to JSON
+    new_data = {website_name: {
+        "email": email,
+        "password": password
+    }}
+
+    try:
+        with open('data.json', 'r') as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        data = {}
+
+    data.update(new_data)
+
+    with open('data.json', 'w') as data_file:
+        json.dump(data, data_file, indent=4)
+
+        website_input.delete(0, len(website_name))
+        email_input.delete(0, len(email))
+        password_input.delete(0, len(password))
+    # Write to CSV
+
+    # d = {'Website': [website_name], 'Username': [email], 'Password': [password]}
+    # df = pd.DataFrame(data=d)
+    # print(df)
+    # df.to_csv('out.csv', index=False, mode='a', header=False)
     # Empty all Entry fields after submitting to get them ready for the next input
+
+
+# ---------------------------- SEARCH PASSWORD ------------------------------- #
+
+def search_password():
+    global website_name
+    global email
+    website_name = website_input.get()
+    email = email_input.get()
+
+    try:
+        with open('data.json', 'r') as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        data = {}
+        with open('data.json', 'w') as data_file:
+            json.dump(data, data_file, )
+            print("Error No File found new file created")
+            tkinter.messagebox.showinfo(title="ERROR", message="Error No File found new file created")
+
+    else:
+        if website_name in data:
+            new_data = data[website_name]
+            print(new_data["email"])
+            print(email)
+            if data[website_name]['email'] == email:
+                tkinter.messagebox.showinfo(title=website_name, message=f"Password is {new_data['password']}")
+
+        else:
+            tkinter.messagebox.showinfo(title=website_name, message=f"{website_name} was not found")
+
     website_input.delete(0, len(website_name))
     email_input.delete(0, len(email))
-    password_input.delete(0, len(password))
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -106,5 +157,8 @@ Password_button.grid(column=2, row=3)
 # Add Button
 Add_button = tkinter.Button(text="Add", highlightthickness=0, width=36, command=save_password)
 Add_button.grid(column=1, row=4, columnspan=2, )
+# Save Password Button
+Save_button = tkinter.Button(text="Search Password", highlightthickness=0, bd=10, command=search_password)
+Save_button.grid(column=2, row=1)
 
 window.mainloop()
